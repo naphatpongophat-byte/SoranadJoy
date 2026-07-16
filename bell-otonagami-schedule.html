@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bell Otonagami — Technician Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F8F4EA;
+    --paper:#FFFFFF;
+    --ink:#1B1A17;
+    --ink-soft:#6E6A5F;
+    --line:#E4DDC9;
+    --hanko:#AE4438;
+    --half:#C9C2AA;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-weight:400;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:40px 16px 64px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .app{
+    width:100%;
+    max-width:640px;
+  }
+
+  /* ---------- Header ---------- */
+  .header{
+    text-align:center;
+    margin-bottom:28px;
+    position:relative;
+  }
+  .date-tag{
+    position:absolute;
+    right:0;
+    top:4px;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .mark{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--hanko);
+    margin:0 auto 14px;
+  }
+  .shop-name{
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-weight:900;
+    font-size:34px;
+    letter-spacing:.08em;
+    margin:0;
+  }
+  .subtitle{
+    margin-top:10px;
+    font-size:10.5px;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .rule{
+    width:40px;
+    height:1px;
+    background:var(--ink);
+    margin:18px auto 0;
+    opacity:.5;
+  }
+
+  /* ---------- Toggle row ---------- */
+  .toggle-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:14px;
+    font-size:12px;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+  }
+  .switch{
+    position:relative;
+    width:38px;
+    height:20px;
+    flex-shrink:0;
+  }
+  .switch input{
+    opacity:0;
+    width:0;
+    height:0;
+  }
+  .switch-track{
+    position:absolute;
+    inset:0;
+    background:var(--line);
+    border-radius:20px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .switch-track::before{
+    content:"";
+    position:absolute;
+    width:14px;
+    height:14px;
+    left:3px;
+    top:3px;
+    background:#fff;
+    border-radius:50%;
+    transition:transform .15s ease;
+    box-shadow:0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch input:checked + .switch-track{ background:var(--ink); }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+
+  /* ---------- Schedule card ---------- */
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    padding:18px 14px;
+  }
+
+  .schedule-scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 60px repeat(3, minmax(74px, 1fr));
+    min-width:280px;
+    border-top:1px solid var(--ink);
+    border-left:1px solid var(--line);
+  }
+  .cell{
+    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  .corner{
+    background:transparent;
+    border-bottom:1px solid var(--ink);
+  }
+  .col-head{
+    padding:12px 4px;
+    font-size:13px;
+    letter-spacing:.02em;
+    font-weight:700;
+    border-bottom:1px solid var(--ink);
+  }
+  .row-head{
+    padding:8px 4px;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+  }
+  .slot{
+    height:52px;
+    cursor:pointer;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    transition:background .15s ease;
+  }
+  .slot:active{ background:#F1EEE3; }
+  @media (hover:hover){
+    .slot:hover{ background:#FBF9F2; }
+  }
+
+  .bell-wrap{
+    position:relative;
+    width:20px;
+    height:20px;
+    pointer-events:none;
+  }
+  .bell-wrap svg{
+    position:absolute;
+    top:0; left:0;
+    width:20px;
+    height:20px;
+  }
+  .bell-outline path{
+    fill:none;
+    stroke:var(--half);
+    stroke-width:1.4;
+  }
+  .bell-fill path{
+    fill:var(--ink);
+    stroke:none;
+  }
+
+  /* ---------- Legend ---------- */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:16px 22px;
+    margin-top:20px;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+  }
+  .legend-item{ display:flex; align-items:center; gap:6px; }
+  .legend-item .bell-wrap{ width:16px; height:16px; }
+  .legend-item .bell-wrap svg{ width:16px; height:16px; }
+
+  /* ---------- Actions ---------- */
+  .actions{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-top:26px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    font-size:11.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:13px 22px;
+    border:1px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+    touch-action:manipulation;
+    transition:all .15s ease;
+  }
+  #exportBtn{ background:var(--ink); color:var(--cream); }
+  #exportBtn:active{ background:#000; }
+  #resetBtn:active{ background:var(--ink); color:var(--cream); }
+
+  /* ---------- Footer contact ---------- */
+  .footer{
+    text-align:center;
+    margin-top:30px;
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+  }
+  .footer b{ color:var(--ink); font-weight:700; }
+  .hint{
+    text-align:center;
+    margin-top:8px;
+    font-size:10px;
+    color:var(--half);
+    letter-spacing:.03em;
+    padding:0 10px;
+  }
+
+  @media (max-width:380px){
+    .shop-name{ font-size:28px; }
+    body{ padding:32px 10px 56px; }
+    .card{ padding:14px 10px; }
+  }
+
+  .js-warning{
+    background:#FBEFE9;
+    border:1px solid var(--hanko);
+    color:var(--ink);
+    font-size:12px;
+    line-height:1.5;
+    padding:12px 14px;
+    margin-bottom:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="date-tag" id="dateTag"></div>
+    <div class="mark"></div>
+    <h1 class="shop-name">Bell Otonagami</h1>
+    <div class="subtitle">Technician Schedule ・ 予約表</div>
+    <div class="rule"></div>
+  </div>
+
+  <div class="toggle-row">
+    <span>Show 19:00 slot</span>
+    <label class="switch">
+      <input type="checkbox" id="show19Toggle">
+      <span class="switch-track"></span>
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="js-warning">กดปุ่มไม่ได้? ไฟล์นี้ต้องเปิดใน <b>Safari หรือ Chrome จริง ๆ</b> ไม่ใช่หน้าพรีวิวจากแอปแชท/ไลน์/IG — กดไอคอนแชร์ที่ไฟล์ แล้วเลือก "Open in Safari"</div>
+    <div class="schedule-scroll">
+      <div class="grid" id="grid">
+      <div class="cell corner"></div>
+      <div class="cell col-head">Hide</div>
+      <div class="cell col-head">Hina</div>
+      <div class="cell col-head">Airy</div>
+      <div class="cell row-head">09:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="0"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="0"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="0"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">10:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="1"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="1"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="1"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">11:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="2"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="2"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="2"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">12:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="3"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="3"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="3"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">13:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="4"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="4"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="4"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">14:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="5"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="5"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="5"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">15:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="6"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="6"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="6"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">16:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="7"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="7"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="7"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">17:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="8"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="8"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="8"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell row-head">18:00</div>
+      <div class="cell slot" data-tech="Hide" data-idx="9"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Hina" data-idx="9"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      <div class="cell slot" data-tech="Airy" data-idx="9"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div></div>
+      </div>
+    </div>
+
+    <div class="legend" id="legend">
+      <div class="legend-item"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 100% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div><span>Available</span></div>
+      <div class="legend-item"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 50% 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div><span>First half</span></div>
+      <div class="legend-item"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 0 0 50%)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div><span>Second half</span></div>
+      <div class="legend-item"><div class="bell-wrap"><svg class="bell-outline" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:inset(0 0 0 0)"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></div><span>Fully booked</span></div>
+      </div>
+  </div>
+
+  <div class="actions">
+    <button id="resetBtn">Clear</button>
+    <button id="exportBtn">Export IG Story</button>
+  </div>
+
+  <div class="footer">
+    TEL <b>02-000-3001</b> ・ LINE OA <b>@skk6845h</b>
+  </div>
+  <div class="hint">Tap a slot to cycle: available → first half → second half → full hour</div>
+</div>
+
+<canvas id="exportCanvas" width="1080" height="1920" style="display:none;"></canvas>
+
+<script>
+const TECHS = ['Hide','Hina','Airy'];
+const HOURS_ALL = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00'];
+const BELL_PATH = "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z";
+
+// state[tech][hourIndex] = 0 available, 1 first half booked, 2 second half booked, 3 full hour booked
+let state = {};
+TECHS.forEach(t => state[t] = new Array(HOURS_ALL.length).fill(0));
+let show19 = false;
+
+try{
+  const saved = localStorage.getItem('bellOtonagamiSchedule');
+  if(saved) state = JSON.parse(saved);
+  const savedShow19 = localStorage.getItem('bellOtonagamiShow19');
+  if(savedShow19 !== null) show19 = savedShow19 === 'true';
+}catch(e){}
+
+function save(){
+  try{
+    localStorage.setItem('bellOtonagamiSchedule', JSON.stringify(state));
+    localStorage.setItem('bellOtonagamiShow19', String(show19));
+  }catch(e){}
+}
+
+function visibleHours(){
+  return show19 ? HOURS_ALL : HOURS_ALL.slice(0, 10);
+}
+
+function dateLabel(){
+  const d = new Date();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}.${mm}.${dd} (${days[d.getDay()]})`;
+}
+document.getElementById('dateTag').textContent = dateLabel();
+
+function clipForState(s){
+  // returns css clip-path string for the black fill layer
+  if(s === 0) return 'inset(0 100% 0 0)';       // nothing
+  if(s === 1) return 'inset(0 50% 0 0)';        // left half (first 30 min)
+  if(s === 2) return 'inset(0 0 0 50%)';        // right half (last 30 min)
+  return 'inset(0 0 0 0)';                      // full
+}
+
+function bellSVG(s){
+  return `
+    <div class="bell-wrap">
+      <svg class="bell-outline" viewBox="0 0 24 24"><path d="${BELL_PATH}"/></svg>
+      <svg class="bell-fill" viewBox="0 0 24 24" style="clip-path:${clipForState(s)}"><path d="${BELL_PATH}"/></svg>
+    </div>`;
+}
+
+document.getElementById('show19Toggle').checked = show19;
+
+function render(){
+  const grid = document.getElementById('grid');
+  const hours = visibleHours();
+
+  let html = `<div class="cell corner"></div>`;
+  TECHS.forEach(t => html += `<div class="cell col-head">${t}</div>`);
+
+  hours.forEach((h, hIdx) => {
+    html += `<div class="cell row-head">${h}</div>`;
+    TECHS.forEach(tech => {
+      const s = state[tech][hIdx];
+      html += `<div class="cell slot" data-tech="${tech}" data-idx="${hIdx}">${bellSVG(s)}</div>`;
+    });
+  });
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.slot').forEach(el => {
+    el.addEventListener('click', () => {
+      const tech = el.dataset.tech;
+      const idx = parseInt(el.dataset.idx, 10);
+      state[tech][idx] = (state[tech][idx] + 1) % 4;
+      save();
+      render();
+    });
+  });
+}
+render();
+
+document.getElementById('show19Toggle').addEventListener('change', (e) => {
+  show19 = e.target.checked;
+  save();
+  render();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  TECHS.forEach(t => state[t] = new Array(HOURS_ALL.length).fill(0));
+  save();
+  render();
+});
+
+/* ================= EXPORT: IG Story 1080x1920 ================= */
+
+function drawBell(ctx, cx, cy, size, fillState, colorFull, colorEmpty){
+  const scale = size / 24;
+  ctx.save();
+  ctx.translate(cx - size/2, cy - size/2);
+  ctx.scale(scale, scale);
+  const p = new Path2D(BELL_PATH);
+
+  // outline / empty track
+  ctx.fillStyle = colorEmpty;
+  ctx.fill(p);
+
+  if(fillState > 0){
+    ctx.save();
+    ctx.beginPath();
+    if(fillState === 1){
+      ctx.rect(0, 0, 12, 24);       // first half
+    } else if(fillState === 2){
+      ctx.rect(12, 0, 12, 24);      // second half
+    } else {
+      ctx.rect(0, 0, 24, 24);       // full
+    }
+    ctx.clip();
+    ctx.fillStyle = colorFull;
+    ctx.fill(p);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+async function loadFonts(){
+  try{
+    await Promise.all([
+      document.fonts.load('900 40px "Zen Kaku Gothic New"'),
+      document.fonts.load('700 20px "Zen Kaku Gothic New"'),
+      document.fonts.load('500 20px "Zen Kaku Gothic New"'),
+      document.fonts.load('400 20px "Zen Kaku Gothic New"'),
+    ]);
+    await document.fonts.ready;
+  }catch(e){}
+}
+
+async function exportImage(){
+  await loadFonts();
+
+  const canvas = document.getElementById('exportCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const CREAM = '#F8F4EA';
+  const INK = '#1B1A17';
+  const INK_SOFT = '#6E6A5F';
+  const LINE = '#E4DDC9';
+  const HANKO = '#AE4438';
+  const EMPTY_TRACK = '#D9D2BC';
+  const FONT = '"Zen Kaku Gothic New", sans-serif';
+
+  const hours = visibleHours();
+
+  // background
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0,0,W,H);
+
+  // outer margin frame (thin)
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(40,40,W-80,H-80);
+
+  // hanko mark
+  ctx.fillStyle = HANKO;
+  ctx.beginPath();
+  ctx.arc(W/2, 150, 8, 0, Math.PI*2);
+  ctx.fill();
+
+  // shop name
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'center';
+  ctx.font = `900 66px ${FONT}`;
+  ctx.fillText('Bell Otonagami', W/2, 246);
+
+  // subtitle
+  ctx.font = `500 22px ${FONT}`;
+  ctx.fillStyle = INK_SOFT;
+  ctx.fillText('TECHNICIAN SCHEDULE ・ 予約表', W/2, 292);
+
+  // date
+  ctx.fillText(dateLabel(), W/2, 330);
+
+  // rule
+  ctx.strokeStyle = INK;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2 - 60, 366);
+  ctx.lineTo(W/2 + 60, 366);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- schedule table (Y = time, X = tech) ----
+  const tableTop = 430;
+  const tableLeft = 80;
+  const tableRight = W - 80;
+  const tableWidth = tableRight - tableLeft;
+  const labelColW = 140;
+  const colsW = tableWidth - labelColW;
+  const colW = colsW / TECHS.length;
+  const headRowH = 64;
+  const maxRows = 11;
+  const availH = H - 300 - tableTop; // reserve space for footer
+  const rowH = Math.min(120, Math.floor((availH - headRowH) / hours.length));
+  const tableBottom = tableTop + headRowH + rowH * hours.length;
+
+  // card background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(tableLeft, tableTop, tableWidth, tableBottom - tableTop);
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(tableLeft, tableTop, tableWidth, tableBottom - tableTop);
+
+  // header row bottom border (strong)
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tableLeft, tableTop + headRowH);
+  ctx.lineTo(tableRight, tableTop + headRowH);
+  ctx.stroke();
+
+  // column headers (tech names)
+  ctx.font = `700 26px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.textAlign = 'center';
+  TECHS.forEach((t, i) => {
+    const cx = tableLeft + labelColW + colW * i + colW/2;
+    ctx.fillText(t, cx, tableTop + headRowH/2 + 9);
+  });
+
+  // vertical grid lines
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 1;
+  for(let i=0;i<=TECHS.length;i++){
+    const x = tableLeft + labelColW + colW*i;
+    ctx.beginPath();
+    ctx.moveTo(x, tableTop);
+    ctx.lineTo(x, tableBottom);
+    ctx.stroke();
+  }
+  // label column divider (strong)
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(tableLeft + labelColW, tableTop);
+  ctx.lineTo(tableLeft + labelColW, tableBottom);
+  ctx.stroke();
+
+  // rows (time slots)
+  hours.forEach((h, hIdx) => {
+    const rowY = tableTop + headRowH + rowH * hIdx;
+
+    // horizontal row divider
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tableLeft, rowY);
+    ctx.lineTo(tableRight, rowY);
+    ctx.stroke();
+
+    // row label (time)
+    ctx.font = `500 24px ${FONT}`;
+    ctx.fillStyle = INK_SOFT;
+    ctx.textAlign = 'left';
+    ctx.fillText(h, tableLeft + 20, rowY + rowH/2 + 8);
+
+    // cells
+    TECHS.forEach((tech, cIdx) => {
+      const cx = tableLeft + labelColW + colW*cIdx + colW/2;
+      const cy = rowY + rowH/2;
+      const s = state[tech][hIdx];
+      const bellSize = Math.min(44, rowH * 0.5);
+      drawBell(ctx, cx, cy, bellSize, s, INK, EMPTY_TRACK);
+    });
+  });
+
+  // legend
+  const legendY = tableBottom + 50;
+  ctx.font = `400 19px ${FONT}`;
+  ctx.fillStyle = INK_SOFT;
+
+  const legendItems = [
+    {s:0, label:'Available'},
+    {s:1, label:'First half'},
+    {s:2, label:'Second half'},
+    {s:3, label:'Fully booked'},
+  ];
+  const totalW = tableWidth;
+  const itemW = totalW / legendItems.length;
+  legendItems.forEach((it, i) => {
+    const cx = tableLeft + itemW*i + itemW/2;
+    drawBell(ctx, cx - 46, legendY, 24, it.s, INK, EMPTY_TRACK);
+    ctx.textAlign = 'left';
+    ctx.fillText(it.label, cx - 26, legendY + 7);
+  });
+
+  // ---- footer contact ----
+  const footerY = H - 190;
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2 - 60, footerY - 40);
+  ctx.lineTo(W/2 + 60, footerY - 40);
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillStyle = INK;
+  ctx.fillText('TEL  02-000-3001', W/2, footerY + 10);
+  ctx.fillText('LINE OA  @skk6845h', W/2, footerY + 56);
+
+  ctx.font = `500 18px ${FONT}`;
+  ctx.fillStyle = INK_SOFT;
+  ctx.fillText('Bell Otonagami', W/2, footerY + 100);
+
+  // download
+  const link = document.createElement('a');
+  link.download = `bell-otonagami-schedule-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+document.getElementById('exportBtn').addEventListener('click', exportImage);
+</script>
+
+</body>
+</html>
